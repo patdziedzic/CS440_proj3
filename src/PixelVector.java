@@ -15,4 +15,9 @@ public class PixelVector {
     PixelVector(double a, double b, double c, double d) {
         vector = new double[]{a, b, c, d};
     }
+
+    PixelVector(PixelVector src) {
+        vector = new double[src.vector.length];
+        System.arraycopy(src.vector, 0, vector, 0, src.vector.length);
+    }
 }
