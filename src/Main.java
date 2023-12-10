@@ -6,9 +6,9 @@ public class Main {
     private static LinkedList<Image> trainingImages = new LinkedList<>();
     private static int numTest = 2000;
     private static LinkedList<Image> testingImages = new LinkedList<>();
-    private static final double alpha = 0.10; //alpha = 0.25
+    private static final double alpha = 0.02; //0.01
     private static final double initWeight = 0.001;
-    //private static PixelVector[] weightVector = new PixelVector[D*D + 1];
+    private static PixelVector[] weightVector = new PixelVector[D*D + 1];
 
     private static final HashMap<String, PixelVector> colors = new HashMap<String, PixelVector>(){{
         put("R", new PixelVector(1, 0, 0, 0));
@@ -35,9 +35,9 @@ public class Main {
         double sum = 0.0;
         for (Image img : trainingImages) {
             int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img))))
+            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
                     -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img))));
+                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
         }
 
         return ((double) 1 / trainingImages.size()) * sum;
@@ -50,24 +50,24 @@ public class Main {
         double sum = 0.0;
         for (Image img : testingImages) {
             int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img))))
+            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
                     -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img))));
+                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
         }
 
         return ((double) 1 / testingImages.size()) * sum;
     }
 
     /**
-     * Dot product of 2 images as PixelVector[] arrays
+     * Dot product of weight with given image vector
      */
-    public static double dotProduct(Image img) {
+    public static double dotProduct(PixelVector[] image) {
         double sum = 0;
         //go through all vectors
-        for (int i = 0; i < img.image.length; i++) {
+        for (int i = 0; i < image.length; i++) {
             //go through all bits in the vector
-            for (int j = 0; j < img.image[i].vector.length; j++)
-                sum += img.weightVector[i].vector[j] * img.image[i].vector[j];
+            for (int j = 0; j < image[i].vector.length; j++)
+                sum += weightVector[i].vector[j] * image[i].vector[j];
         }
         return sum;
     }
@@ -154,14 +154,8 @@ public class Main {
             for (int c = 0; c < D; c++)
                 pvArray[randRow2 + 1 + c] = new PixelVector(color3);
         }
-
         Image img = new Image();
         img.image = pvArray;
-        //generate initial weight vector
-        for (int i = 0; i < img.weightVector.length; i++) {
-            img.weightVector[i] = new PixelVector(initWeight, initWeight, initWeight, initWeight);
-        }
-        img.weightVector[0] = new PixelVector(initWeight);
         img.dangerous = chooseColor.indexOf("R") < chooseColor.indexOf("Y");
         return img;
     }
@@ -187,24 +181,24 @@ public class Main {
         Image img = trainingImages.get(rand(0, trainingImages.size()));
 
         //update weightVector based on how poorly model performs on img
-        PixelVector[] newWeightVector = new PixelVector[img.weightVector.length];
+        PixelVector[] newWeightVector = new PixelVector[weightVector.length];
         for (int i = 0; i < newWeightVector.length; i++) {
             newWeightVector[i] = new PixelVector();
         }
 
-        double f = sigmoid(dotProduct(img));
+        double f = sigmoid(dotProduct(img.image));
         int y = img.dangerous ? 1 : 0;
 
         PixelVector[] subtractVector = scaleImage(alpha*(f-y), img.image);
 
         //go through all vectors
         for (int i = 0; i < newWeightVector.length; i++) {
-            newWeightVector[i].vector = new double[img.weightVector[i].vector.length];
+            newWeightVector[i].vector = new double[weightVector[i].vector.length];
             //go through all bits in the vector
             for (int j = 0; j < newWeightVector[i].vector.length; j++)
-                newWeightVector[i].vector[j] = img.weightVector[i].vector[j] - subtractVector[i].vector[j];
+                newWeightVector[i].vector[j] = weightVector[i].vector[j] - subtractVector[i].vector[j];
         }
-        img.weightVector = newWeightVector;
+        weightVector = newWeightVector;
     }
 
     /**
@@ -218,10 +212,16 @@ public class Main {
         System.out.println(colors.get("Y"));
         System.out.println("\n\n\n\n\n");
 
-        numTrain = 2000;
+        numTrain = 5000;
         generateTrainingData();
-        numTest = 2000;
+        numTest = 5000;
         generateTestingData();
+
+        //generate initial weight vector
+        for (int i = 0; i < weightVector.length; i++) {
+            weightVector[i] = new PixelVector(initWeight, initWeight, initWeight, initWeight);
+        }
+        weightVector[0] = new PixelVector(initWeight);
 
         trainModel();
 
@@ -230,9 +230,18 @@ public class Main {
 
         //for (int i = 0; i < 10; i++) {
         while (true) {
-            for (int i = 0; i < 10; i++) trainModel();
+            for (int i = 0; i < 2000; i++) trainModel();
             System.out.println("Training Loss: " + calculateTrainingLoss() + "          " +
                     "Testing Loss: " + calculateTestingLoss());
+
+            /*Image img = trainingImages.get(rand(0, trainingImages.size()));
+            double f = sigmoid(dotProduct(img.image));
+            int y = img.dangerous ? 1 : 0;
+            PixelVector[] gradient = scaleImage((f-y), img.image);
+            System.out.println("GRADIENT:");
+            for (PixelVector pv : gradient)
+                System.out.println(Arrays.toString(pv.vector));
+            System.out.println("\n\n");*/
         }
         //}
 
