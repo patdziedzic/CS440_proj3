@@ -9,7 +9,7 @@ public class Task2 {
     private static LinkedList<Image> trainingImages = new LinkedList<>();
     public static int numTest;
     private static LinkedList<Image> testingImages = new LinkedList<>();
-    private static final double alpha = 0.015;
+    private static final double alpha = 0.03;
     private static final double initWeight = 0.001;
     private static PixelVector[] weightVector = new PixelVector[Main.D*Main.D + 1];
 
@@ -105,6 +105,7 @@ public class Task2 {
         chooseColor.add("G");
         chooseColor.add("B");
         chooseColor.add("Y");
+        Collections.shuffle(chooseColor); //added for the purpose of inducing an initial shuffling
         //shuffle until R is before Y, making the image dangerous
         while (chooseColor.indexOf("R") >= chooseColor.indexOf("Y"))
             Collections.shuffle(chooseColor);
