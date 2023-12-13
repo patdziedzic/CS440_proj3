@@ -244,6 +244,7 @@ public class Task2 extends Main {
     private static void trainModel() {
         //choose some random image from the data set
         Image img = trainingImages.get(rand(0, trainingImages.size()));
+        calculateSoftmaxDenominator(img.image);
 
         //for each color, update corresponding weight vector based on how poorly model performs on img
         for (String color: colors.keySet()) {
