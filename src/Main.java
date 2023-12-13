@@ -44,9 +44,9 @@ public class Main {
         //Task 2
         Task2.numTrain = 2500;
         Task2.numTest = 2500;
-        Task2.trainingLossCutoff = 0.24;
-        Task2.divergenceCutoff = 0.05;
-        Task2.numTimesTrainAtOnce = 50;
+        Task2.trainingLossCutoff = 0.01;
+        Task2.divergenceCutoff = 0.015;
+        Task2.numTimesTrainAtOnce = 2000;
         Task2.runExperiment();
         System.out.println("\n*******************************************************************************\n");
 

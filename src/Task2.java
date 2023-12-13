@@ -315,7 +315,14 @@ public class Task2 extends Main {
         System.out.println("Initial Testing Loss: " + calculateTestingLoss());
 
         while (trainingLoss > trainingLossCutoff) {
-            for (int i = 0; i < 2000; i++) trainModel();
+            for (int i = 0; i < numTimesTrainAtOnce; i++) trainModel();
+            trainingLoss = calculateTrainingLoss();
+            System.out.println("Training Loss: " + trainingLoss + "\t\t\t" +
+                    "Testing Loss: " + calculateTestingLoss());
+        }
+        System.out.println("********** terminate here to prevent overfitting **********");
+        while (trainingLoss > divergenceCutoff) {
+            for (int i = 0; i < numTimesTrainAtOnce; i++) trainModel();
             trainingLoss = calculateTrainingLoss();
             System.out.println("Training Loss: " + trainingLoss + "\t\t\t" +
                     "Testing Loss: " + calculateTestingLoss());
