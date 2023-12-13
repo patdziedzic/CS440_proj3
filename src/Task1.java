@@ -3,8 +3,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-public class Task1 {
+public class Task1 extends Main {
     public static double trainingLossCutoff; //to prevent overfitting
+    public static double divergenceCutoff; //to display that the data diverges
+    public static double numTimesTrainAtOnce; //the number of times to train the model before calculating loss
     public static int numTrain;
     private static LinkedList<Image> trainingImages = new LinkedList<>();
     public static int numTest;
@@ -30,36 +32,6 @@ public class Task1 {
     }
 
     public static double sigmoid(double z) { return 1 / (1 + Math.exp(-z)); }
-
-    /**
-     * TRAINING loss
-     */
-    private static double calculateTrainingLoss() {
-        double sum = 0.0;
-        for (Image img : trainingImages) {
-            int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
-                    -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
-        }
-
-        return ((double) 1 / trainingImages.size()) * sum;
-    }
-
-    /**
-     * TESTING loss
-     */
-    private static double calculateTestingLoss() {
-        double sum = 0.0;
-        for (Image img : testingImages) {
-            int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
-                    -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
-        }
-
-        return ((double) 1 / testingImages.size()) * sum;
-    }
 
     /**
      * Dot product of weight with given image vector
@@ -92,6 +64,40 @@ public class Task1 {
         }
         return resultImg;
     }
+
+
+
+    /**
+     * TRAINING loss
+     */
+    private static double calculateTrainingLoss() {
+        double sum = 0.0;
+        for (Image img : trainingImages) {
+            int y = img.dangerous ? 1 : 0;
+            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
+                    -
+                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
+        }
+
+        return ((double) 1 / trainingImages.size()) * sum;
+    }
+
+    /**
+     * TESTING loss
+     */
+    private static double calculateTestingLoss() {
+        double sum = 0.0;
+        for (Image img : testingImages) {
+            int y = img.dangerous ? 1 : 0;
+            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
+                    -
+                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
+        }
+
+        return ((double) 1 / testingImages.size()) * sum;
+    }
+
+
 
     private static Image generateImage() {
         PixelVector[] pvArray = new PixelVector[Main.D*Main.D + 1];
@@ -176,6 +182,8 @@ public class Task1 {
         }
     }
 
+
+
     /**
      * Stochastic Gradient Descent --> one iteration/update
      */
@@ -224,7 +232,14 @@ public class Task1 {
         System.out.println("Initial Testing Loss: " + calculateTestingLoss());
 
         while (trainingLoss > trainingLossCutoff) {
-            for (int i = 0; i < 2000; i++) trainModel();
+            for (int i = 0; i < numTimesTrainAtOnce; i++) trainModel();
+            trainingLoss = calculateTrainingLoss();
+            System.out.println("Training Loss: " + trainingLoss + "\t\t\t" +
+                    "Testing Loss: " + calculateTestingLoss());
+        }
+        System.out.println("********** terminate here to prevent overfitting **********");
+        while (trainingLoss > divergenceCutoff) {
+            for (int i = 0; i < numTimesTrainAtOnce; i++) trainModel();
             trainingLoss = calculateTrainingLoss();
             System.out.println("Training Loss: " + trainingLoss + "\t\t\t" +
                     "Testing Loss: " + calculateTestingLoss());

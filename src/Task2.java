@@ -3,15 +3,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-public class Task2 {
+public class Task2 extends Main {
     public static double trainingLossCutoff; //to prevent overfitting
+    public static double divergenceCutoff; //to display that the data diverges
+    public static double numTimesTrainAtOnce; //the number of times to train the model before calculating loss
     public static int numTrain;
     private static LinkedList<Image> trainingImages = new LinkedList<>();
     public static int numTest;
     private static LinkedList<Image> testingImages = new LinkedList<>();
-    private static final double alpha = 0.03;
+    private static final double alpha = 0.015;
     private static final double initWeight = 0.001;
-    private static PixelVector[] weightVector = new PixelVector[Main.D*Main.D + 1];
+    private static PixelVector[] weightVector_R = new PixelVector[Main.D*Main.D + 1];
+    private static PixelVector[] weightVector_G = new PixelVector[Main.D*Main.D + 1];
+    private static PixelVector[] weightVector_B = new PixelVector[Main.D*Main.D + 1];
+    private static PixelVector[] weightVector_Y = new PixelVector[Main.D*Main.D + 1];
+    private static double softmaxDenominator;
 
     private static final HashMap<String, PixelVector> colors = new HashMap<String, PixelVector>(){{
         put("R", new PixelVector(1, 0, 0, 0));
@@ -29,48 +35,45 @@ public class Task2 {
         return (int) ((Math.random() * (max - min)) + min);
     }
 
-    public static double sigmoid(double z) { return 1 / (1 + Math.exp(-z)); }
-
     /**
-     * TRAINING loss
+     * Softmax function, given that the denominator has been calculated already
      */
-    private static double calculateTrainingLoss() {
-        double sum = 0.0;
-        for (Image img : trainingImages) {
-            int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
-                    -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
-        }
-
-        return ((double) 1 / trainingImages.size()) * sum;
+    public static double softmax(String color, PixelVector[] image) {
+        //calculateSoftmaxDenominator();
+        return (Math.exp(dotProduct(color, image))) / softmaxDenominator;
     }
 
     /**
-     * TESTING loss
+     * Calculate the softmax denominator to normalize the function
      */
-    private static double calculateTestingLoss() {
-        double sum = 0.0;
-        for (Image img : testingImages) {
-            int y = img.dangerous ? 1 : 0;
-            sum += (-y * Math.log(sigmoid(dotProduct(img.image))))
-                    -
-                    ((1 - y) * Math.log(1 - sigmoid(dotProduct(img.image))));
+    public static void calculateSoftmaxDenominator(PixelVector[] image) {
+        softmaxDenominator = 0.0;
+        for (String color : colors.keySet()) {
+            softmaxDenominator += Math.exp(dotProduct(color, image));
         }
-
-        return ((double) 1 / testingImages.size()) * sum;
     }
 
     /**
-     * Dot product of weight with given image vector
+     * Dot product of weight (of given color) with given image vector
+     * @param color The current color in iteration
+     * @param image The PixelVector[] image used in calculations, also known as the x vector
      */
-    public static double dotProduct(PixelVector[] image) {
+    public static double dotProduct(String color, PixelVector[] image) {
+        PixelVector[] w = switch (color) {
+            case "R" -> weightVector_R;
+            case "G" -> weightVector_G;
+            case "B" -> weightVector_B;
+            case "Y" -> weightVector_Y;
+            default -> null;
+        };
+        assert w != null;
+
         double sum = 0;
         //go through all vectors
         for (int i = 0; i < image.length; i++) {
             //go through all bits in the vector
             for (int j = 0; j < image[i].vector.length; j++)
-                sum += weightVector[i].vector[j] * image[i].vector[j];
+                sum += w[i].vector[j] * image[i].vector[j];
         }
         return sum;
     }
@@ -93,6 +96,58 @@ public class Task2 {
         return resultImg;
     }
 
+    /**
+     * Subtract 2 vectors
+     */
+    private static PixelVector[] subtractVectors(PixelVector[] a, PixelVector[] b) {
+        assert a.length == b.length;
+        PixelVector[] result = new PixelVector[a.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = new PixelVector();
+        }
+
+        //go through all vectors
+        for (int i = 0; i < result.length; i++) {
+            result[i].vector = new double[a[i].vector.length];
+            //go through all bits in the vector
+            for (int j = 0; j < result[i].vector.length; j++)
+                result[i].vector[j] = a[i].vector[j] - b[i].vector[j];
+        }
+        return result;
+    }
+
+
+
+    /**
+     * TRAINING loss
+     */
+    private static double calculateTrainingLoss() {
+        double sum = 0.0;
+        for (Image img : trainingImages) {
+            String y = img.colorToCut; //the actual output
+            calculateSoftmaxDenominator(img.image);
+            sum += -1 * Math.log(softmax(y, img.image));
+        }
+
+        return ((double) 1 / trainingImages.size()) * sum;
+    }
+
+    /**
+     * TESTING loss
+     */
+    private static double calculateTestingLoss() {
+        double sum = 0.0;
+        for (Image img : testingImages) {
+            String y = img.colorToCut;
+            calculateSoftmaxDenominator(img.image);
+            sum += -1 * Math.log(softmax(y, img.image));
+        }
+
+        return ((double) 1 / testingImages.size()) * sum;
+    }
+
+
+
     private static Image generateImage() {
         PixelVector[] pvArray = new PixelVector[Main.D*Main.D + 1];
         for (int i = 0; i < pvArray.length; i++) {
@@ -105,7 +160,7 @@ public class Task2 {
         chooseColor.add("G");
         chooseColor.add("B");
         chooseColor.add("Y");
-        Collections.shuffle(chooseColor); //added for the purpose of inducing an initial shuffling
+        Collections.shuffle(chooseColor); //initial shuffling
         //shuffle until R is before Y, making the image dangerous
         while (chooseColor.indexOf("R") >= chooseColor.indexOf("Y"))
             Collections.shuffle(chooseColor);
@@ -122,6 +177,7 @@ public class Task2 {
         while (randCol2 == randCol1)
             randCol2 = rand(0, 19);
 
+        //deep copy (new addresses) the hashmap into 4 different PixelVectors for each color
         PixelVector color0 = new PixelVector();
         System.arraycopy(colors.get(chooseColor.get(0)).vector, 0,
                 color0.vector, 0, colors.get(chooseColor.get(0)).vector.length);
@@ -162,7 +218,7 @@ public class Task2 {
         }
         Image img = new Image();
         img.image = pvArray;
-        img.dangerous = chooseColor.indexOf("R") < chooseColor.indexOf("Y");
+        img.dangerous = chooseColor.indexOf("R") < chooseColor.indexOf("Y"); //always true for part 2
         img.colorToCut = chooseColor.get(2); //for dangerous, the wire to cut is the 3rd laid down
         return img;
     }
@@ -180,6 +236,8 @@ public class Task2 {
         }
     }
 
+
+
     /**
      * Stochastic Gradient Descent --> one iteration/update
      */
@@ -187,25 +245,55 @@ public class Task2 {
         //choose some random image from the data set
         Image img = trainingImages.get(rand(0, trainingImages.size()));
 
-        //update weightVector based on how poorly model performs on img
-        PixelVector[] newWeightVector = new PixelVector[weightVector.length];
-        for (int i = 0; i < newWeightVector.length; i++) {
-            newWeightVector[i] = new PixelVector();
+        //for each color, update corresponding weight vector based on how poorly model performs on img
+        for (String color: colors.keySet()) {
+            //f is the output of softmax, which is the probability of the current color being correct
+            double f = softmax(color, img.image);
+            //y is the actual output: 1 if this color
+            int y = color.equals(img.colorToCut) ? 1 : 0;
+
+            PixelVector[] subtractVector = scaleImage(alpha * (f - y), img.image);
+            switch (color) {
+                case "R":
+                    weightVector_R = subtractVectors(weightVector_R, subtractVector);
+                    break;
+                case "G":
+                    weightVector_G = subtractVectors(weightVector_G, subtractVector);
+                    break;
+                case "B":
+                    weightVector_B = subtractVectors(weightVector_B, subtractVector);
+                    break;
+                case "Y":
+                    weightVector_Y = subtractVectors(weightVector_Y, subtractVector);
+                    break;
+                default:
+                    return;
+            }
         }
+    }
 
-        double f = sigmoid(dotProduct(img.image));
-        int y = img.dangerous ? 1 : 0;
-
-        PixelVector[] subtractVector = scaleImage(alpha*(f-y), img.image);
-
-        //go through all vectors
-        for (int i = 0; i < newWeightVector.length; i++) {
-            newWeightVector[i].vector = new double[weightVector[i].vector.length];
-            //go through all bits in the vector
-            for (int j = 0; j < newWeightVector[i].vector.length; j++)
-                newWeightVector[i].vector[j] = weightVector[i].vector[j] - subtractVector[i].vector[j];
+    private static void generateInitialWeightVector(String color) {
+        PixelVector[] w = new PixelVector[Main.D * Main.D + 1];
+        for (int i = 0; i < w.length; i++) {
+            w[i] = new PixelVector(initWeight, initWeight, initWeight, initWeight);
         }
-        weightVector = newWeightVector;
+        w[0] = new PixelVector(initWeight);
+
+        switch (color) {
+            case "R":
+                weightVector_R = w;
+                break;
+            case "G":
+                weightVector_G = w;
+                break;
+            case "B":
+                weightVector_B = w;
+                break;
+            case "Y":
+                weightVector_Y = w;
+                break;
+            default: return;
+        }
     }
 
     public static void runExperiment() {
@@ -214,12 +302,10 @@ public class Task2 {
         testingImages = new LinkedList<>();
         generateTestingData();
 
-        //generate initial weight vector
-        weightVector = new PixelVector[Main.D*Main.D + 1];
-        for (int i = 0; i < weightVector.length; i++) {
-            weightVector[i] = new PixelVector(initWeight, initWeight, initWeight, initWeight);
-        }
-        weightVector[0] = new PixelVector(initWeight);
+        generateInitialWeightVector("R");
+        generateInitialWeightVector("G");
+        generateInitialWeightVector("B");
+        generateInitialWeightVector("Y");
 
         trainModel();
 
