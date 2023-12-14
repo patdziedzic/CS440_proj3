@@ -148,6 +148,9 @@ public class Task2 extends Main {
 
 
 
+    /**
+     * Generate an image
+     */
     private static Image generateImage() {
         PixelVector[] pvArray = new PixelVector[Main.D*Main.D + 1];
         for (int i = 0; i < pvArray.length; i++) {
@@ -224,12 +227,18 @@ public class Task2 extends Main {
     }
 
 
+    /**
+     * Generate training images and store
+     */
     private static void generateTrainingData() {
         for (int i = 0; i < numTrain; i++) {
             trainingImages.add(generateImage());
         }
     }
 
+    /**
+     * Generate testing images and store
+     */
     private static void generateTestingData() {
         for (int i = 0; i < numTest; i++) {
             testingImages.add(generateImage());
@@ -273,6 +282,9 @@ public class Task2 extends Main {
         }
     }
 
+    /**
+     * Generate the given initial weight vector
+     */
     private static void generateInitialWeightVector(String color) {
         PixelVector[] w = new PixelVector[Main.D * Main.D + 1];
         for (int i = 0; i < w.length; i++) {
@@ -297,6 +309,9 @@ public class Task2 extends Main {
         }
     }
 
+    /**
+     * Driver method to run the experiment
+     */
     public static void runExperiment() {
         trainingImages = new LinkedList<>();
         generateTrainingData();

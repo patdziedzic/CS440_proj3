@@ -31,6 +31,9 @@ public class Task1 extends Main {
         return (int) ((Math.random() * (max - min)) + min);
     }
 
+    /**
+     * Sigmoid function for model space
+     */
     public static double sigmoid(double z) { return 1 / (1 + Math.exp(-z)); }
 
     /**
@@ -98,7 +101,9 @@ public class Task1 extends Main {
     }
 
 
-
+    /**
+     * Generate an image
+     */
     private static Image generateImage() {
         PixelVector[] pvArray = new PixelVector[Main.D*Main.D + 1];
         for (int i = 0; i < pvArray.length; i++) {
@@ -170,12 +175,18 @@ public class Task1 extends Main {
     }
 
 
+    /**
+     * Generate training images and store
+     */
     private static void generateTrainingData() {
         for (int i = 0; i < numTrain; i++) {
             trainingImages.add(generateImage());
         }
     }
 
+    /**
+     * Generate testing images and store
+     */
     private static void generateTestingData() {
         for (int i = 0; i < numTest; i++) {
             testingImages.add(generateImage());
@@ -212,6 +223,9 @@ public class Task1 extends Main {
         weightVector = newWeightVector;
     }
 
+    /**
+     * Driver method to run the experiment
+     */
     public static void runExperiment() {
         trainingImages = new LinkedList<>();
         generateTrainingData();
